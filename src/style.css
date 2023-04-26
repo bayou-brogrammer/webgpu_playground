@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+* { 
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html { background-color: #000; height: 100vh; }
+
+body {
+    height: 100vh;
+    max-width: 100vw;
+    background-color: papayawhip; 
+    margin: 0 auto;
+}
