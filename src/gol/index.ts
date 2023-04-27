@@ -13,7 +13,7 @@ export class GameOfLife extends Sample {
   loopCount = 0;
 
   // Vertices / Indices
-  squareVertices!: Uint32Array;
+  squareVertices!: Float32Array;
 
   // Shaders
   vertexShader!: GPUShaderModule;
@@ -122,10 +122,10 @@ export class GameOfLife extends Sample {
   }
 
   private createBuffers () {
-    this.squareVertices = new Uint32Array([0, 0, 0, 1, 1, 0, 1, 1]);
+    this.squareVertices = new Float32Array([0, 0, 0, 1, 1, 0, 1, 1]);
     const squareBuffer = this.createBuffer({
       usage: GPUBufferUsage.VERTEX,
-      setArray: new Uint32Array(this.squareVertices),
+      setArray: this.squareVertices,
     });
 
     const sizeBuffer = this.createBuffer({
@@ -232,7 +232,7 @@ export class GameOfLife extends Sample {
     const squareStride: GPUVertexBufferLayout = {
       stepMode: 'vertex',
       arrayStride: 2 * this.squareVertices.BYTES_PER_ELEMENT,
-      attributes: [{shaderLocation: 1, offset: 0, format: 'uint32x2'}],
+      attributes: [{shaderLocation: 1, offset: 0, format: 'float32x2'}],
     };
 
     const renderLayout = this.createPipelineLayout({
