@@ -122,15 +122,18 @@ export class GameOfLife extends Sample {
   }
 
   private createBuffers () {
+    // ========== VERTICES ==========
     this.squareVertices = new Float32Array([0, 0, 0, 1, 1, 0, 1, 1]);
     const squareBuffer = this.createBuffer({
       usage: GPUBufferUsage.VERTEX,
       setArray: this.squareVertices,
     });
+    this.squareBuffer = squareBuffer;
 
+    // ========== SIZE ==========
     const sizeBuffer = this.createBuffer({
       label: 'size_buffer',
-      setArray: new Uint32Array([
+      setArray: new Float32Array([
         this.simulationProperties.width,
         this.simulationProperties.height,
       ]),
@@ -140,7 +143,9 @@ export class GameOfLife extends Sample {
         GPUBufferUsage.COPY_DST |
         GPUBufferUsage.VERTEX,
     });
+    this.sizeBuffer = sizeBuffer;
 
+    // ========== CELLS ==========
     // Initialize the cells randomly
     const cells = new Uint32Array(
       this.simulationProperties.width * this.simulationProperties.height,
@@ -162,8 +167,6 @@ export class GameOfLife extends Sample {
 
     this.buffer_in = buffer_in;
     this.buffer_out = buffer_out;
-    this.sizeBuffer = sizeBuffer;
-    this.squareBuffer = squareBuffer;
   }
 
   private createBindGroups () {
