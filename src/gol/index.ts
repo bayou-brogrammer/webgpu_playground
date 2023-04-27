@@ -38,6 +38,11 @@ export class GameOfLife extends Sample {
   renderPipeline!: GPURenderPipeline;
   computePipeline!: GPUComputePipeline;
 
+  resolution!: number;
+  mousex!: number;
+  mousey!: number;
+  draw!: boolean;
+
   constructor (options?: SampleConstructorOptions) {
     super(options);
   }
@@ -50,6 +55,24 @@ export class GameOfLife extends Sample {
     this.createBuffers();
     this.createBindGroups();
     this.createPipelines();
+
+    this.resolution = Math.round(
+      Math.max(this.canvas.width, this.canvas.height),
+    );
+
+    this.canvas.addEventListener('mousemove', (e: MouseEvent) => {
+      let rect = this.canvas.getBoundingClientRect();
+      this.mousex = ((e.clientX - rect.left) / rect.width) * this.resolution;
+      this.mousey = ((e.clientY - rect.top) / rect.height) * this.resolution;
+    });
+
+    this.canvas.addEventListener('mousedown', (e: MouseEvent) => {
+      this.draw = true;
+    });
+
+    this.canvas.addEventListener('mouseup', (e: MouseEvent) => {
+      this.draw = false;
+    });
 
     return this;
   }
@@ -290,11 +313,11 @@ export class GameOfLife extends Sample {
     const bindGroup = this.bufferBindGroups[this.loopCount % 2];
 
     // compute
-    // const passEncoderCompute = commandEncoder.beginComputePass();
-    // passEncoderCompute.setPipeline(this.computePipeline);
-    // passEncoderCompute.setBindGroup(0, bindGroup);
-    // passEncoderCompute.dispatchWorkgroups(workGroupX, workGroupY);
-    // passEncoderCompute.end();
+    const passEncoderCompute = commandEncoder.beginComputePass();
+    passEncoderCompute.setPipeline(this.computePipeline);
+    passEncoderCompute.setBindGroup(0, bindGroup);
+    passEncoderCompute.dispatchWorkgroups(workGroupX, workGroupY);
+    passEncoderCompute.end();
 
     // Render
     const passEncoderRender = commandEncoder.beginRenderPass({
@@ -310,7 +333,7 @@ export class GameOfLife extends Sample {
 
     let buffer: GPUBuffer;
     if (this.loopCount % 2 === 0) {
-      buffer = this.buffer_in;
+      buffer = this.buffer_out;
     } else {
       buffer = this.buffer_in;
     }
