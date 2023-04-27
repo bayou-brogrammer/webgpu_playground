@@ -8,7 +8,13 @@ export class GameOfLife extends Sample {
     width: number;
     height: number;
     workgroupSize: number;
-  } = {width: 256, height: 256, workgroupSize: 8};
+    color: Float32Array;
+  } = {
+    width: 256,
+    height: 256,
+    workgroupSize: 8,
+    color: new Float32Array([1.0, 0.0, 0.0, 1]),
+  };
 
   loopCount = 0;
 
@@ -225,9 +231,9 @@ export class GameOfLife extends Sample {
       stepMode: 'instance',
       attributes: [
         {
-          shaderLocation: 0,
           offset: 0,
           format: 'uint32',
+          shaderLocation: 0,
         },
       ],
     };
@@ -290,11 +296,11 @@ export class GameOfLife extends Sample {
     const bindGroup = this.bufferBindGroups[this.loopCount % 2];
 
     // compute
-    // const passEncoderCompute = commandEncoder.beginComputePass();
-    // passEncoderCompute.setPipeline(this.computePipeline);
-    // passEncoderCompute.setBindGroup(0, bindGroup);
-    // passEncoderCompute.dispatchWorkgroups(workGroupX, workGroupY);
-    // passEncoderCompute.end();
+    const passEncoderCompute = commandEncoder.beginComputePass();
+    passEncoderCompute.setPipeline(this.computePipeline);
+    passEncoderCompute.setBindGroup(0, bindGroup);
+    passEncoderCompute.dispatchWorkgroups(workGroupX, workGroupY);
+    passEncoderCompute.end();
 
     // Render
     const passEncoderRender = commandEncoder.beginRenderPass({
@@ -310,7 +316,7 @@ export class GameOfLife extends Sample {
 
     let buffer: GPUBuffer;
     if (this.loopCount % 2 === 0) {
-      buffer = this.buffer_in;
+      buffer = this.buffer_out;
     } else {
       buffer = this.buffer_in;
     }
