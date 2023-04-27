@@ -10,8 +10,8 @@ export class GameOfLife extends Sample {
     workgroupSize: number;
     color: Float32Array;
   } = {
-    width: 256,
-    height: 256,
+    width: 512,
+    height: 512,
     workgroupSize: 8,
     color: new Float32Array([1.0, 0.0, 0.0, 1]),
   };
@@ -129,7 +129,14 @@ export class GameOfLife extends Sample {
 
   private createBuffers () {
     // ========== VERTICES ==========
-    this.squareVertices = new Float32Array([0, 0, 0, 1, 1, 0, 1, 1]);
+    // prettier-ignore
+    this.squareVertices = new Float32Array([
+      //  x,  y,
+          0,  0, // Vertex 1
+          0,  1, // Vertex 2
+          1,  0, // Vertex 3
+          1,  1  // Vertex 4
+    ]);
     const squareBuffer = this.createBuffer({
       usage: GPUBufferUsage.VERTEX,
       setArray: this.squareVertices,
