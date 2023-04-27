@@ -216,17 +216,15 @@ export class GameOfLife extends Sample {
   }
 
   private createRenderPipeline () {
-    // cell location(0) // CHANGED!
+    // cell location(0)
     const cellsStride: GPUVertexBufferLayout = {
-      arrayStride: 8,
-      // arrayStride: Uint32Array.BYTES_PER_ELEMENT,
+      arrayStride: Uint32Array.BYTES_PER_ELEMENT,
       stepMode: 'instance',
       attributes: [
         {
           shaderLocation: 0,
           offset: 0,
-          format: 'float32x2',
-          // format: 'uint32',
+          format: 'uint32',
         },
       ],
     };
@@ -309,7 +307,6 @@ export class GameOfLife extends Sample {
 
     let buffer: GPUBuffer;
     if (this.loopCount % 2 === 0) {
-      // buffer = this.buffer_out;
       buffer = this.buffer_in;
     } else {
       buffer = this.buffer_in;

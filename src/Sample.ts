@@ -133,7 +133,6 @@ export class Sample {
   }) {
     let size = setArray ? setArray.byteLength : byteSize;
 
-    console.log(size);
     if (size == undefined || size == 0)
       throw new Error('Buffer size must be passed in or array provided');
 
