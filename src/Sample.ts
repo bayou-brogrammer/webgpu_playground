@@ -8,10 +8,11 @@ export type WithOptional<T, K extends keyof T> = Omit<T, K> &
 export interface SampleConstructorOptions {
   fps?: number;
   canvas?: HTMLCanvasElement;
+  maxComputeInvocationsPerWorkgroup?: number;
 }
 
 export class Sample {
-  loopCount = 0;
+  step = 0;
 
   /** Simulation properties */
   simulationProperties = {};
@@ -47,7 +48,12 @@ export class Sample {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) throw new Error('No adapter found');
 
-    const device = await adapter.requestDevice();
+    const device = await adapter.requestDevice({
+      requiredLimits: {
+        maxComputeInvocationsPerWorkgroup:
+          options?.maxComputeInvocationsPerWorkgroup ?? 1024, // allow up to 32x 32y 32z workgroups
+      },
+    });
     const context = this.canvas.getContext('webgpu') as GPUCanvasContext;
     const devicePixelRatio = window.devicePixelRatio || 1;
     this.canvas.width = this.canvas.clientWidth * devicePixelRatio;

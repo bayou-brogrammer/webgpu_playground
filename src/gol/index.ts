@@ -2,8 +2,15 @@ import computeWGSL from './compute.wgsl';
 import renderWGSL from './render.wgsl';
 import {Sample, SampleConstructorOptions} from '../Sample';
 
+export interface simulationProperties {
+  size: number;
+  width: number;
+  height: number;
+}
+
 export class GameOfLife extends Sample {
   simulationProperties: {
+    size: number;
     width: number;
     height: number;
     workgroupSize: number;
@@ -11,14 +18,13 @@ export class GameOfLife extends Sample {
   } = {
     width: 512,
     height: 512,
-    workgroupSize: 8,
+    size: 512 * 512,
+    workgroupSize: 32,
     color: new Float32Array([1.0, 0.0, 0.0, 1]),
   };
 
-  loopCount = 0;
-
   // Vertices / Indices
-  squareVertices!: Float32Array;
+  vertices!: Float32Array;
 
   // Shaders
   vertexShader!: GPUShaderModule;
@@ -34,10 +40,9 @@ export class GameOfLife extends Sample {
   bufferBindGroups!: GPUBindGroup[];
 
   // Buffers
-  buffer_in!: GPUBuffer;
-  buffer_out!: GPUBuffer;
-  sizeBuffer!: GPUBuffer;
-  squareBuffer!: GPUBuffer;
+  vertexBuffer!: GPUBuffer;
+  buffers_in_out!: GPUBuffer[];
+  sizeUniformBuffer!: GPUBuffer;
 
   // Pipelines
   renderPipeline!: GPURenderPipeline;
@@ -88,23 +93,17 @@ export class GameOfLife extends Sample {
         {
           binding: 0,
           visibility: GPUShaderStage.COMPUTE,
-          buffer: {
-            type: 'read-only-storage',
-          },
+          buffer: {type: 'read-only-storage'},
         },
         {
           binding: 1,
           visibility: GPUShaderStage.COMPUTE,
-          buffer: {
-            type: 'read-only-storage',
-          },
+          buffer: {type: 'read-only-storage'},
         },
         {
           binding: 2,
           visibility: GPUShaderStage.COMPUTE,
-          buffer: {
-            type: 'storage',
-          },
+          buffer: {type: 'storage'},
         },
       ],
     });
@@ -114,10 +113,8 @@ export class GameOfLife extends Sample {
       entries: [
         {
           binding: 0,
+          buffer: {type: 'uniform'},
           visibility: GPUShaderStage.VERTEX,
-          buffer: {
-            type: 'uniform',
-          },
         },
       ],
     });
@@ -129,80 +126,71 @@ export class GameOfLife extends Sample {
   private createBuffers () {
     // ========== VERTICES ==========
     // prettier-ignore
-    this.squareVertices = new Float32Array([
+    this.vertices = new Float32Array([
       //  x,  y,
           0,  0, // Vertex 1
           0,  1, // Vertex 2
           1,  0, // Vertex 3
           1,  1  // Vertex 4
     ]);
-    const squareBuffer = this.createBuffer({
+
+    this.vertexBuffer = this.createBuffer({
+      setArray: this.vertices,
       usage: GPUBufferUsage.VERTEX,
-      setArray: this.squareVertices,
     });
-    this.squareBuffer = squareBuffer;
 
     // ========== SIZE ==========
-    const sizeBuffer = this.createBuffer({
+    this.sizeUniformBuffer = this.createBuffer({
       label: 'size_buffer',
       setArray: new Float32Array([
         this.simulationProperties.width,
         this.simulationProperties.height,
       ]),
-      usage:
-        GPUBufferUsage.STORAGE |
-        GPUBufferUsage.UNIFORM |
-        GPUBufferUsage.COPY_DST |
-        GPUBufferUsage.VERTEX,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
     });
-    this.sizeBuffer = sizeBuffer;
 
     // ========== CELLS ==========
     // Initialize the cells randomly
-    const cells = new Uint32Array(
-      this.simulationProperties.width * this.simulationProperties.height,
-    );
+    const cells = new Uint32Array(this.simulationProperties.size);
     for (let i = 0; i < cells.length; i++) {
       cells[i] = Math.random() < 0.25 ? 1 : 0;
     }
 
-    const buffer_in = this.createBuffer({
-      label: 'buffer_in',
-      setArray: cells,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX,
-    });
-
-    const buffer_out = this.device.createBuffer({
-      size: cells.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX,
-    });
-
-    this.buffer_in = buffer_in;
-    this.buffer_out = buffer_out;
+    this.buffers_in_out = [
+      this.createBuffer({
+        label: 'buffer_in',
+        setArray: cells,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX,
+      }),
+      this.device.createBuffer({
+        label: 'buffer_out',
+        size: cells.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX,
+      }),
+    ];
   }
 
   private createBindGroups () {
-    const bindGroup0 = this.createBindGroup({
-      label: 'buffer_in_bind_group',
-      layout: this.bindGroupLayoutCompute,
-      entries: [
-        {binding: 0, resource: {buffer: this.sizeBuffer}},
-        {binding: 1, resource: {buffer: this.buffer_in}},
-        {binding: 2, resource: {buffer: this.buffer_out}},
-      ],
-    });
-
-    const bindGroup1 = this.createBindGroup({
-      label: 'buffer_out_bind_group',
-      layout: this.bindGroupLayoutCompute,
-      entries: [
-        {binding: 0, resource: {buffer: this.sizeBuffer}},
-        {binding: 1, resource: {buffer: this.buffer_out}},
-        {binding: 2, resource: {buffer: this.buffer_in}},
-      ],
-    });
-
-    this.bufferBindGroups = [bindGroup0, bindGroup1];
+    this.bufferBindGroups = [
+      this.createBindGroup({
+        label: 'buffer_in_bind_group',
+        layout: this.bindGroupLayoutCompute,
+        entries: [
+          {binding: 0, resource: {buffer: this.sizeUniformBuffer}},
+          {binding: 1, resource: {buffer: this.buffers_in_out[0]}},
+          {binding: 2, resource: {buffer: this.buffers_in_out[1]}},
+        ],
+      }),
+      this.createBindGroup({
+        label: 'buffer_out_bind_group',
+        layout: this.bindGroupLayoutCompute,
+        entries: [
+          {binding: 0, resource: {buffer: this.sizeUniformBuffer}},
+          {binding: 1, resource: {buffer: this.buffers_in_out[1]}},
+          {binding: 2, resource: {buffer: this.buffers_in_out[0]}},
+        ],
+      }),
+    ];
   }
 
   private createPipelines () {
@@ -217,13 +205,12 @@ export class GameOfLife extends Sample {
     });
 
     const computePipeline = this.createPipeline('compute', {
+      label: 'computePipeline',
       layout: computeLayout,
       compute: {
         entryPoint: 'main',
         module: this.computeShader,
-        constants: {
-          blockSize: this.simulationProperties.workgroupSize,
-        },
+        constants: {blockSize: this.simulationProperties.workgroupSize},
       },
     }) as GPUComputePipeline;
 
@@ -232,7 +219,7 @@ export class GameOfLife extends Sample {
 
   private createRenderPipeline () {
     // cell location(0)
-    const cellsStride: GPUVertexBufferLayout = {
+    const vertexLayout: GPUVertexBufferLayout = {
       arrayStride: Uint32Array.BYTES_PER_ELEMENT,
       stepMode: 'instance',
       attributes: [
@@ -244,9 +231,9 @@ export class GameOfLife extends Sample {
       ],
     };
     // position location(1)
-    const squareStride: GPUVertexBufferLayout = {
+    const positionLayout: GPUVertexBufferLayout = {
       stepMode: 'vertex',
-      arrayStride: 2 * this.squareVertices.BYTES_PER_ELEMENT,
+      arrayStride: 2 * this.vertices.BYTES_PER_ELEMENT,
       attributes: [{shaderLocation: 1, offset: 0, format: 'float32x2'}],
     };
 
@@ -261,7 +248,7 @@ export class GameOfLife extends Sample {
       vertex: {
         entryPoint: 'vertMain',
         module: this.vertexShader,
-        buffers: [cellsStride, squareStride],
+        buffers: [vertexLayout, positionLayout],
       },
       fragment: {
         entryPoint: 'fragMain',
@@ -278,7 +265,7 @@ export class GameOfLife extends Sample {
           binding: 0,
           resource: {
             offset: 0,
-            buffer: this.sizeBuffer,
+            buffer: this.sizeUniformBuffer,
             size: 2 * Uint32Array.BYTES_PER_ELEMENT,
           },
         },
@@ -299,12 +286,10 @@ export class GameOfLife extends Sample {
       this.simulationProperties.height /
       this.simulationProperties.workgroupSize;
 
-    const bindGroup = this.bufferBindGroups[this.loopCount % 2];
-
     // compute
     const passEncoderCompute = commandEncoder.beginComputePass();
     passEncoderCompute.setPipeline(this.computePipeline);
-    passEncoderCompute.setBindGroup(0, bindGroup);
+    passEncoderCompute.setBindGroup(0, this.bufferBindGroups[this.step % 2]);
     passEncoderCompute.dispatchWorkgroups(workGroupX, workGroupY);
     passEncoderCompute.end();
 
@@ -320,25 +305,15 @@ export class GameOfLife extends Sample {
       ],
     });
 
-    let buffer: GPUBuffer;
-    if (this.loopCount % 2 === 0) {
-      buffer = this.buffer_out;
-    } else {
-      buffer = this.buffer_in;
-    }
-
     passEncoderRender.setPipeline(this.renderPipeline);
-    passEncoderRender.setVertexBuffer(0, buffer);
-    passEncoderRender.setVertexBuffer(1, this.squareBuffer);
+    passEncoderRender.setVertexBuffer(0, this.buffers_in_out[this.step % 2]);
+    passEncoderRender.setVertexBuffer(1, this.vertexBuffer);
     passEncoderRender.setBindGroup(0, this.uniformBindGroup);
-    passEncoderRender.draw(
-      4,
-      this.simulationProperties.width * this.simulationProperties.height,
-    );
+    passEncoderRender.draw(4, this.simulationProperties.size);
     passEncoderRender.end();
 
     this.device.queue.submit([commandEncoder.finish()]);
 
-    this.loopCount++;
+    this.step++;
   }
 }

@@ -56,6 +56,7 @@ export class Timer {
     var dt = now - this._lastTime;
     if (dt > this._frameInterval) {
       this._stats.begin();
+
       this._lastTime = now;
       this.onTick(dt / 1000);
 

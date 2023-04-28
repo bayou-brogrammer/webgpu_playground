@@ -7,7 +7,6 @@ struct VertexInput {
 struct VertexOutput {
   @builtin(position) pos: vec4<f32>,
   @location(0) cell: f32,
-  @location(1) color : vec4<f32>,
 }
 
 @binding(0) @group(0) var<uniform> size: vec2<f32>;
@@ -27,11 +26,10 @@ fn vertMain(input: VertexInput) -> VertexOutput {
   var output : VertexOutput;
   output.pos = vec4<f32>(x, y, 0., 1.);
   output.cell = cell;
-  output.color = vec4<f32>(cell, 0.0, 0.0, 1.);
   return output;
 }
 
 @fragment
-fn fragMain(@location(1) color : vec4<f32>) -> @location(0) vec4<f32> {
-  return color;
+fn fragMain(@location(0) cell : f32) -> @location(0) vec4<f32> {
+  return vec4<f32>(cell, 0.0, cell, 1.);
 }
