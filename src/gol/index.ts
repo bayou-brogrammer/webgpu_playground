@@ -1,6 +1,5 @@
 import computeWGSL from './compute.wgsl';
-import vertWGSL from './vert.wgsl';
-import fragWGSL from './frag.wgsl';
+import renderWGSL from './render.wgsl';
 import {Sample, SampleConstructorOptions} from '../Sample';
 
 export class GameOfLife extends Sample {
@@ -67,12 +66,12 @@ export class GameOfLife extends Sample {
     });
 
     const vertexShader = this.createShaderModule({
-      code: vertWGSL,
+      code: renderWGSL,
       label: 'vertex',
     });
 
     const fragmentShader = this.createShaderModule({
-      code: fragWGSL,
+      code: renderWGSL,
       label: 'fragment',
     });
 
@@ -260,12 +259,12 @@ export class GameOfLife extends Sample {
       layout: renderLayout,
       primitive: {topology: 'triangle-strip'},
       vertex: {
-        entryPoint: 'main',
+        entryPoint: 'vertMain',
         module: this.vertexShader,
         buffers: [cellsStride, squareStride],
       },
       fragment: {
-        entryPoint: 'main',
+        entryPoint: 'fragMain',
         module: this.fragmentShader,
         targets: [{format: this.presentationFormat}],
       },

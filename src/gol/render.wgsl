@@ -13,7 +13,7 @@ struct VertexOutput {
 @binding(0) @group(0) var<uniform> size: vec2<f32>;
 
 @vertex
-fn main(input: VertexInput) -> VertexOutput {
+fn vertMain(input: VertexInput) -> VertexOutput {
   let w = size.x;
   let h = size.y;
   
@@ -29,4 +29,9 @@ fn main(input: VertexInput) -> VertexOutput {
   output.cell = cell;
   output.color = vec4<f32>(cell, 0.0, 0.0, 1.);
   return output;
+}
+
+@fragment
+fn fragMain(@location(1) color : vec4<f32>) -> @location(0) vec4<f32> {
+  return color;
 }
